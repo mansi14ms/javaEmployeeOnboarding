@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url : "jdbc:postgresql://localhost:5432/test_db"
+    username: "${DB_USERNAME:postgres}"
+    password: "${DB_PASSWORD:123}"
+    driverClassName: "org.postgresql.Driver"
+  jpa:
+    hibernate:
+      ddl-auto: "update"
+  cloud:
+    gcp:
+      sql:
+        enabled: false
+        instance-connection-name: "${DB_CLOUD_SQL:hu18-groupa-java:asia-southeast2:hu-sql-java}"
+        database-name: "${DB_NAME:mansisinghdb}"

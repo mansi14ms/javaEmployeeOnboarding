@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    username: "${DB_USERNAME:mansisingh}"
+    password: "${DB_PASSWORD:mansisingh}"
+    driverClassName: "org.postgresql.Driver"
+  jpa:
+    hibernate:
+      ddl-auto: "update"
+  cloud:
+    gcp:
+      sql:
+        enabled: true
+        instance-connection-name: "${DB_CLOUD_SQL:hu18-groupa-java:asia-southeast2:hu-sql-java}"
+        database-name: "${DB_NAME:mansisinghdb}"

@@ -1,0 +1,83 @@
+# Enginered by: Avinash Kumar<avinash.kumar@hashedin.com> & Satya Kumar <satya.kumar@hashedin.com>
+
+# Enginered by: Avinash Kumar<avinash.kumar@hashedin.com> & Satya Kumar <satya.kumar@hashedin.com>
+# image: docker:latest
+# services:
+#   - docker:dind
+
+# variables:
+#   DOCKER_DRIVER: overlay
+#   SPRING_PROFILES_ACTIVE: gitlab-ci
+stages:
+  - build
+  - deploy
+
+maven-build:
+  image: maven:3-jdk-11
+  stage: build
+  variables:
+    MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  cache:
+    paths:
+      - ./.m2/repository/
+  script: "mvn clean package"
+  artifacts:
+    paths:
+      - target/*.jar
+
+deploy_staging:
+  image: google/cloud-sdk:alpine
+  stage: deploy
+  environment: staging
+  only:
+    - master
+  before_script:
+    - "echo ${GITLAB_USER_LOGIN/./-}"
+    - "Servicename=${GITLAB_USER_LOGIN/./-}"
+    - "echo $Servicename"
+    - "ServiceName=${Servicename//-}"
+    - "echo $ServiceName"
+    - "dbname=${ServiceName}db"
+    - "echo $dbname"
+    - "echo $CI_PROJECT_NAME"
+    - |
+      cat <<EOF >> app.yaml
+      runtime: java11
+      service: $ServiceName
+      env_variables:
+        SPRING_PROFILES_ACTIVE: "gcp,mysql"
+        TEST_CONFIG: "$CI_PROJECT_NAME"
+        DB_NAME: "$dbname"
+        DB_USERNAME: "$ServiceName"
+        DB_PASSWORD: "$ServiceName"
+        DB_CLOUD_SQL: "hu18-groupa-java:asia-southeast2:hu-sql-java"
+      manual_scaling:
+        instances: 1
+      EOF
+    - "cat app.yaml"
+    - |
+      cat <<EOF >> $CI_PIPELINE_ID.json
+      {
+        "type": "service_account",
+        "project_id": "hu18-groupa-java",
+        "private_key_id": "30960cc2d55d01852134b42450571c7fb0fbe66a",
+        "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCIsRHC5LTo6h+3\nBiofPbQkasQwoTN0xd4wBKgLQJjBmJsbGaMsoKVQzpXG+cE57/pbZ8Z/ImWoZf6X\nL0ggKHIPOanvJl8d+zIoDBgJUwQ8V6IjPu//FN549Tld0N8zA3uGmfgTKVIZtgU1\ndoZ4sjY+oBS5p772SOi4fDortdQz+/ky2nf7V6OpNQMmxXfbNBqJqmtNWA34IND5\n8BwB7y7zrOe4uAoKd1rbid7JNnOrWR222DyjBP0+TkmF8NvPW82mhqdWHnqndaAs\nYFG0VPy6eQYD/KVY+pvzO1TwSQFjEpTgqkb1G3DeeiDJglZhpRgpU3zC9PlL/C9S\nVH2J4+6VAgMBAAECggEAC9lVkdBjgkExSJtHMXgW0oVSxmhi3n98eCsfKgKKe1Ww\nNFQvmeG/Etclkp75yfzsddn0Efc4WrWksRRPK0J2SK2V9n4cBqxMt738o2pH1rc9\n/dIp2bHEazXOqDw/7NsjbRKRt4+AZ2wo3W6Nz46bNyiHQ2SwIAdH7R4PqNRVNcBE\ndlnKQ+FraB75J5iYPaepSTH6h1d1246ZeWs5vJVpz3hKSDAmJQqFrWHLoRdfiyDi\nanUu3/R/670R/an5bb1ICqdAUPoK2cxAGSELB/F/zy4d8tD0IlPxtJ4WUSevc2hW\nOll3MYBYXeLI1vsSec8eYvj6AQov/SyDIUFtSazLIQKBgQC7VNH94yAVTh7/H9F1\ner5xjTuiN3DHSj5FMuDXWGt4kQn3zVTSxVYbOsmnu+DY5xO98OJhkr6U/St8annI\nx0Ik9DoAsFq3bjSfKTOwFbIGldXW5+1bs3USdDbqlWKPIttWC7GNZg3r7JmFHOru\nOIdcQ6To3+TvEWG41ngUh+11PQKBgQC6zDjYponfTwmFYDu2B5nNicgoJymwcKtj\nWw7yHcTa5CQ7js9OSdTV01Wv0x0RTbE6q+MjycfJiJr+u6nyGpbDJq7A3RXUQ7Qw\nOIWfXf45ZAsutQGXRsv337sOgb5y1RyhQzVPNnsSecduN3pdtiKL/d036edNWxIi\nloNMEq1kOQKBgEjRYMtC9V6yvkPHl4EGFG9JSgv1ZwZgqrH1ZAbxXN1B69ECZN2F\nTcJJ6McltfI6aKclsqnhA+ogOz4imXJdWi3JLZ7E7o5s7VGND4V7+Xar2bKu9sn1\niSWCPTKUnPosv3vEEeF38SNrFgXzRrMREDTiKoFHPtNbO1RBMe4xJDG1AoGANFbi\nmrnXKc3gkhGLyY5JpxCzF6UZhkmbjCRIhMiYjuibymBSb9I6I4uql7BklaOaRCFD\nbJSuOSbgnv2AOcj/c0DUeE+6PRaXV2eO8T+J6xTAGV84SeXZYuO6au8pqM1Tz0+g\nkUhnpZ6fpZ8/1yAgf+8q2+7bE46v/ycDNP6KvOkCgYB0sQC0hWDM6MjHnpGLQkr9\n+jwiK7jhDGSxacqsZkXGopqrpzP2qloBVH6fBmOV9Q64+bm3bCTKORqcMvOZifCT\nfztojRLqKV/BtsuScnsj0Qpasabs86+xE+TChPq7t1UVIXv2fG7fzeX2oDuh1UOU\nxj9Bwt6De8Nbzg8s0k1q4w==\n-----END PRIVATE KEY-----\n",
+        "client_email": "gitlab-ci@hu18-groupa-java.iam.gserviceaccount.com",
+        "client_id": "109849818166081695661",
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/gitlab-ci%40hu18-groupa-java.iam.gserviceaccount.com"
+        }
+      EOF
+    - "cat $CI_PIPELINE_ID.json"
+
+
+  script:
+    - gcloud auth activate-service-account --key-file $CI_PIPELINE_ID.json
+    - gcloud --project hu18-groupa-java app deploy --version v1 target/*.jar --appyaml app.yaml
+    - url=$(gcloud app services browse $ServiceName --no-launch-browser --project hu18-groupa-java)
+    - echo $url
+
+  after_script:
+    - rm $CI_PIPELINE_ID.json
